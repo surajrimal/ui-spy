@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const defaultSheetUrl =
   'https://docs.google.com/spreadsheets/d/19KCx_PO6mRlBsZfDjyv5hUNkRUk_yDT8/edit?gid=2132622732#gid=2132622732'
@@ -172,7 +172,6 @@ function formatDateLabel(value: number, fallback: string): string {
 }
 
 export default function App() {
-  const [sheetUrl, setSheetUrl] = useState(defaultSheetUrl)
   const [rows, setRows] = useState<RowRecord[]>([])
   const [query, setQuery] = useState('')
   const [monthFilter, setMonthFilter] = useState('All months')
@@ -180,7 +179,6 @@ export default function App() {
     'newest',
   )
   const [selectedTradeId, setSelectedTradeId] = useState('')
-  const [exportUrl, setExportUrl] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -281,13 +279,12 @@ export default function App() {
     }))
   }, [filteredTrades])
 
-  async function loadSheet(rawUrl: string) {
+  async function loadSheet(rawUrl: string = defaultSheetUrl) {
     setError('')
     setIsLoading(true)
 
     try {
       const nextExportUrl = normalizeSheetUrl(rawUrl)
-      setExportUrl(nextExportUrl)
 
       const response = await fetch(nextExportUrl)
       if (!response.ok) {
@@ -313,7 +310,6 @@ export default function App() {
           ? caughtError.message
           : 'The sheet could not be loaded.'
       setRows([])
-      setExportUrl('')
       setSelectedTradeId('')
       setError(message)
     } finally {
@@ -321,13 +317,8 @@ export default function App() {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    await loadSheet(sheetUrl)
-  }
-
   useEffect(() => {
-    void loadSheet(defaultSheetUrl)
+    void loadSheet()
   }, [])
 
   useEffect(() => {
@@ -338,34 +329,22 @@ export default function App() {
 
   return (
     <main className="page-shell">
-      <section className="hero-card">
-        <div className="eyebrow">Interactive Trading Journal</div>
-        <h1>Read the Google Sheet like a dashboard, not a spreadsheet.</h1>
-        <p className="hero-copy">
-          I analyzed your sheet and found a compact trade log with columns for
-          <strong> Date</strong>, <strong>Buy</strong>, <strong>Sell</strong>,
-          <strong> Net P/L</strong>, and <strong>Month</strong>. This UI treats
-          it as a performance tracker with analytics, filtering, and row-level
-          drilldown.
-        </p>
+      <section className="data-card">
+        <div className="dashboard-head">
+          <div>
+            <div className="eyebrow">Interactive Trading Journal</div>
+            <p className="hero-copy">
+              Live performance view for your fixed Google Sheet with filters,
+              analytics, and trade drilldown.
+            </p>
+          </div>
 
-        <form className="sheet-form" onSubmit={handleSubmit}>
-          <label className="field">
-            <span>Google Sheets URL</span>
-            <input
-              type="url"
-              value={sheetUrl}
-              onChange={(event) => setSheetUrl(event.target.value)}
-              placeholder="Paste a Google Sheets URL"
-              aria-label="Google Sheets URL"
-              required
-            />
-          </label>
-
-          <button type="submit" disabled={isLoading}>
-            {isLoading ? 'Refreshing data...' : 'Reload sheet'}
-          </button>
-        </form>
+          <div className="head-actions">
+            <button type="button" onClick={() => void loadSheet()} disabled={isLoading}>
+              {isLoading ? 'Refreshing data...' : 'Refresh data'}
+            </button>
+          </div>
+        </div>
 
         <div className="status-grid" aria-live="polite">
           <article>
@@ -382,24 +361,8 @@ export default function App() {
           </article>
         </div>
 
-        <div className="insight-card">
-          <span className="status-label">Current sheet read</span>
-          <p>
-            The linked tab currently contains 6 trade rows dated March 2, 2026
-            through March 12, 2026, all under <strong>Mar-2026</strong>.
-          </p>
-        </div>
-
-        {exportUrl ? (
-          <p className="hint">
-            CSV endpoint: <a href={exportUrl}>{exportUrl}</a>
-          </p>
-        ) : null}
-
         {error ? <p className="error-banner">{error}</p> : null}
-      </section>
 
-      <section className="data-card">
         <div className="toolbar">
           <div>
             <h2>Performance board</h2>
@@ -580,6 +543,37 @@ export default function App() {
               <div className="panel-head">
                 <h3>Trade ledger</h3>
                 <p>Clickable rows with the raw values from the current sheet tab.</p>
+              </div>
+              <div className="mobile-ledger" aria-label="Trade ledger cards">
+                {filteredTrades.map((trade) => (
+                  <button
+                    key={trade.id}
+                    type="button"
+                    className={`mobile-trade-card ${selectedTrade?.id === trade.id ? 'active' : ''}`}
+                    onClick={() => setSelectedTradeId(trade.id)}
+                  >
+                    <div className="mobile-trade-head">
+                      <strong>{formatDateLabel(trade.dateValue, trade.dateLabel)}</strong>
+                      <span className={trade.net >= 0 ? 'profit' : 'loss'}>
+                        {formatCurrency(trade.net)}
+                      </span>
+                    </div>
+                    <div className="mobile-trade-grid">
+                      <span>
+                        <small>Buy</small>
+                        <strong>{formatCurrency(trade.buy)}</strong>
+                      </span>
+                      <span>
+                        <small>Sell</small>
+                        <strong>{formatCurrency(trade.sell)}</strong>
+                      </span>
+                      <span>
+                        <small>Month</small>
+                        <strong>{trade.month}</strong>
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
               <div className="table-shell" role="region" aria-label="Trade ledger">
                 <table>
