@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/constants.ts","./src/main.tsx","./src/types.ts","./src/components/dashboardheader.tsx","./src/components/filtertoolbar.tsx","./src/components/metricsgrid.tsx","./src/components/statusgrid.tsx","./src/components/tradedetailpanel.tsx","./src/components/tradeledger.tsx","./src/components/trendpanel.tsx","./src/utils/format.ts","./src/utils/sheet.ts","./src/utils/trades.ts"],"version":"5.9.3"}
